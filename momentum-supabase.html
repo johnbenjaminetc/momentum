@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#F5F2EB">
+  <title>Momentum — Task Filing System</title>
+  <link rel="manifest" href="data:application/json,{&quot;name&quot;:&quot;Momentum&quot;,&quot;short_name&quot;:&quot;Momentum&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;%23F5F2EB&quot;,&quot;theme_color&quot;:&quot;%23F5F2EB&quot;}">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      background: #F5F2EB;
+      color: #1a1a1a;
+      font-family: 'Archivo', system-ui, sans-serif;
+      padding: 48px 24px;
+      padding-top: max(48px, env(safe-area-inset-top));
+      padding-bottom: max(48px, env(safe-area-inset-bottom));
+    }
+    
+    html {
+      height: -webkit-fill-available;
+    }
+    
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    
+    /* Auth styles */
+    .auth-container {
+      max-width: 400px;
+      margin: 80px auto;
+      text-align: center;
+    }
+    
+    .auth-container h1 {
+      font-size: 48px;
+      font-family: 'Archivo Black', sans-serif;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+    
+    .auth-container .subtitle {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 48px;
+    }
+    
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .auth-input {
+      padding: 16px;
+      font-size: 14px;
+      font-family: 'Space Mono', monospace;
+      background: #fff;
+      border: 2px solid #1a1a1a;
+      color: #1a1a1a;
+      text-align: center;
+    }
+    
+    .auth-input::placeholder {
+      color: #999;
+    }
+    
+    .auth-input:focus {
+      outline: none;
+      border-color: #C41E3A;
+    }
+    
+    .auth-btn {
+      padding: 16px;
+      font-size: 12px;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      background: #1a1a1a;
+      border: 2px solid #1a1a1a;
+      color: #F5F2EB;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    
+    .auth-btn:hover {
+      background: #C41E3A;
+      border-color: #C41E3A;
+    }
+    
+    .auth-btn.secondary {
+      background: transparent;
+      color: #1a1a1a;
+    }
+    
+    .auth-btn.secondary:hover {
+      background: #1a1a1a;
+      color: #F5F2EB;
+    }
+    
+    .auth-message {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: #666;
+      margin-top: 16px;
+    }
+    
+    .auth-message.error {
+      color: #C41E3A;
+    }
+    
+    .auth-toggle {
+      margin-top: 24px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #888;
+    }
+    
+    .auth-toggle a {
+      color: #1a1a1a;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    
+    /* App styles */
+    .app-container {
+      display: none;
+    }
+    
+    .app-container.visible {
+      display: block;
+    }
+    
+    header {
+      margin-bottom: 48px;
+      border-bottom: 3px solid #1a1a1a;
+      padding-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    
+    h1 {
+      font-size: 48px;
+      font-family: 'Archivo Black', sans-serif;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    
+    @media (max-width: 500px) {
+      h1 { font-size: 36px; }
+    }
+    
+    .subtitle {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: #666;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+    
+    .header-right {
+      text-align: right;
+    }
+    
+    .date {
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .sign-out {
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      color: #999;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 8px;
+      padding: 4px 0;
+    }
+    
+    .sign-out:hover {
+      color: #C41E3A;
+    }
+    
+    .sync-status {
+      font-size: 9px;
+      font-family: 'Space Mono', monospace;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+    
+    .sync-status.syncing {
+      color: #E07B39;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 40px;
+      padding: 20px 0;
+      border-bottom: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+    
+    .stat-number {
+      font-size: 36px;
+      font-family: 'Archivo Black', sans-serif;
+      line-height: 1;
+    }
+    
+    .stat-number.red { color: #C41E3A; }
+    .stat-number.orange { color: #E07B39; }
+    
+    .stat-label {
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      color: #888;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+      padding: 10px 16px;
+      font-size: 12px;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      background: transparent;
+      border: 2px solid #1a1a1a;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+    }
+    
+    .tab-btn:hover, .tab-btn.active {
+      background: #1a1a1a;
+      color: #F5F2EB;
+    }
+    
+    .tab-count {
+      margin-left: 8px;
+      opacity: 0.6;
+    }
+    
+    .input-row {
+      display: flex;
+      margin-bottom: 32px;
+    }
+    
+    .task-input {
+      flex: 1;
+      padding: 16px;
+      font-size: 14px;
+      font-family: 'Space Mono', monospace;
+      background: #fff;
+      border: 2px solid #1a1a1a;
+      border-right: none;
+      color: #1a1a1a;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    
+    .task-input::placeholder {
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .task-input:focus {
+      outline: none;
+      border-color: #C41E3A;
+    }
+    
+    .submit-btn {
+      padding: 16px 24px;
+      font-size: 12px;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      background: #1a1a1a;
+      border: 2px solid #1a1a1a;
+      color: #F5F2EB;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.15s ease;
+    }
+    
+    .submit-btn:hover {
+      background: #C41E3A;
+      border-color: #C41E3A;
+    }
+    
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: #fff;
+      border-left: 4px solid #1a1a1a;
+      animation: slideIn 0.2s ease-out;
+    }
+    
+    .task-row.done {
+      border-left-color: #C41E3A;
+    }
+    
+    .task-row.deferred {
+      border-left-color: #ccc;
+      opacity: 0.7;
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes completeResist {
+      0% { transform: scale(1); }
+      30% { transform: scale(0.97); }
+      50% { transform: scale(1.01); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes slideDownAndOut {
+      0% { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+      20% {
+        opacity: 1;
+        transform: translateY(-3px);
+      }
+      100% { 
+        opacity: 0; 
+        transform: translateY(60px); 
+      }
+    }
+    
+    .task-row.completing {
+      animation: completeResist 150ms ease-out, slideDownAndOut 400ms ease-in 150ms forwards;
+      pointer-events: none;
+    }
+    
+    .task-row.completing .checkbox {
+      background: #C41E3A !important;
+      border-color: #C41E3A !important;
+    }
+    
+    .task-row.dragging {
+      opacity: 0.9;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 0 0 2px #C41E3A;
+      z-index: 100;
+      cursor: grabbing;
+    }
+    
+    .task-row.drag-over {
+      border-top: 3px solid #C41E3A;
+      margin-top: -3px;
+    }
+    
+    .task-row .drag-handle {
+      cursor: grab;
+      padding: 4px;
+      color: #ccc;
+      font-size: 12px;
+      letter-spacing: 2px;
+      user-select: none;
+      transition: color 0.15s ease;
+      touch-action: none;
+    }
+    
+    .task-row:hover .drag-handle {
+      color: #888;
+    }
+    
+    .task-row.dragging .drag-handle {
+      cursor: grabbing;
+      color: #C41E3A;
+    }
+    
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #1a1a1a;
+      background: transparent;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    
+    .checkbox:hover {
+      background: #C41E3A;
+    }
+    
+    .checkbox.checked {
+      background: #C41E3A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      border: none;
+    }
+    
+    .checkbox.deferred {
+      border-color: #ccc;
+    }
+    
+    .task-title {
+      flex: 1;
+      font-family: 'Archivo', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      word-break: break-word;
+    }
+    
+    .task-title.done {
+      color: #666;
+      text-decoration: line-through;
+      text-decoration-color: #ccc;
+    }
+    
+    .task-title.deferred {
+      color: #888;
+    }
+    
+    .task-number {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: #999;
+      letter-spacing: 0.05em;
+      display: none;
+    }
+    
+    @media (min-width: 500px) {
+      .task-number { display: block; }
+    }
+    
+    .task-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    
+    .task-row:hover .task-actions {
+      opacity: 1;
+    }
+    
+    @media (max-width: 500px) {
+      .task-actions { opacity: 1; }
+    }
+    
+    .action-btn {
+      padding: 4px 8px;
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      background: transparent;
+      border: 1px solid #999;
+      color: #666;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all 0.15s ease;
+    }
+    
+    .action-btn:hover {
+      background: #C41E3A;
+      border-color: #C41E3A;
+      color: #fff;
+    }
+    
+    .action-btn.restore {
+      border-color: #1a1a1a;
+      color: #1a1a1a;
+    }
+    
+    .unplanned-tag {
+      padding: 2px 8px;
+      font-size: 9px;
+      font-family: 'Space Mono', monospace;
+      background: #E07B39;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    
+    .time-stamp {
+      font-size: 10px;
+      font-family: 'Space Mono', monospace;
+      color: #999;
+      letter-spacing: 0.05em;
+    }
+    
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      background: #fff;
+      border-left: 4px solid #ddd;
+    }
+    
+    .empty-title {
+      font-family: 'Archivo', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+    }
+    
+    .empty-subtitle {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid #ddd;
+      text-align: center;
+    }
+    
+    footer p {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+    }
+    
+    .hidden { display: none !important; }
+    
+    .loading {
+      text-align: center;
+      padding: 48px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div class="auth-container" id="auth-container">
+    <h1>MOMENTUM</h1>
+    <p class="subtitle">TASK FILING SYSTEM</p>
+    
+    <div class="auth-form" id="auth-form">
+      <input type="email" class="auth-input" id="auth-email" placeholder="EMAIL">
+      <input type="password" class="auth-input" id="auth-password" placeholder="PASSWORD">
+      <button class="auth-btn" id="auth-submit">SIGN IN</button>
+      <button class="auth-btn secondary" id="auth-magic">SEND MAGIC LINK</button>
+    </div>
+    
+    <p class="auth-message" id="auth-message"></p>
+    
+    <p class="auth-toggle">
+      <span id="auth-toggle-text">Don't have an account?</span>
+      <a id="auth-toggle-link">SIGN UP</a>
+    </p>
+  </div>
+
+  <!-- Main App -->
+  <div class="app-container" id="app-container">
+    <div class="container">
+      <header>
+        <div>
+          <h1>MOMENTUM</h1>
+          <p class="subtitle">TASK FILING SYSTEM</p>
+        </div>
+        <div class="header-right">
+          <div class="date" id="current-date"></div>
+          <div class="sync-status" id="sync-status">SYNCED</div>
+          <button class="sign-out" id="sign-out">SIGN OUT</button>
+        </div>
+      </header>
+      
+      <div class="stats">
+        <div>
+          <div class="stat-number red" id="today-count">0</div>
+          <div class="stat-label">TODAY</div>
+        </div>
+        <div>
+          <div class="stat-number" id="week-count">0</div>
+          <div class="stat-label">THIS WEEK</div>
+        </div>
+        <div id="unplanned-stat" class="hidden">
+          <div class="stat-number orange" id="unplanned-count">0</div>
+          <div class="stat-label">UNPLANNED</div>
+        </div>
+      </div>
+      
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="today">TODAY <span class="tab-count" id="today-tab-count"></span></button>
+        <button class="tab-btn" data-tab="done">FILED <span class="tab-count" id="done-tab-count"></span></button>
+        <button class="tab-btn" data-tab="deferred">DEFERRED <span class="tab-count" id="deferred-tab-count"></span></button>
+      </div>
+      
+      <div class="input-row">
+        <input type="text" class="task-input" id="task-input" placeholder="ADD NEW TASK">
+        <button class="submit-btn" id="submit-btn">FILE</button>
+      </div>
+      
+      <div class="task-list" id="task-list">
+        <div class="loading">LOADING...</div>
+      </div>
+      
+      <footer>
+        <p>DEPT. OF PERSONAL ADMINISTRATION</p>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // SUPABASE CONFIGURATION
+    // ============================================
+    // Replace these with your Supabase project details:
+    const SUPABASE_URL = 'https://kypuddshedrillrtlale.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_secret_UAuJyWV5Uft2q69qJ558Xg_YB7xT8hl';
+    
+    // Initialize Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // ============================================
+    // STATE
+    // ============================================
+    let tasks = [];
+    let activeTab = 'today';
+    let currentUser = null;
+    let isSyncing = false;
+    
+    // ============================================
+    // DOM ELEMENTS
+    // ============================================
+    const authContainer = document.getElementById('auth-container');
+    const appContainer = document.getElementById('app-container');
+    const authEmail = document.getElementById('auth-email');
+    const authPassword = document.getElementById('auth-password');
+    const authSubmit = document.getElementById('auth-submit');
+    const authMagic = document.getElementById('auth-magic');
+    const authMessage = document.getElementById('auth-message');
+    const authToggleText = document.getElementById('auth-toggle-text');
+    const authToggleLink = document.getElementById('auth-toggle-link');
+    const taskInput = document.getElementById('task-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const taskList = document.getElementById('task-list');
+    const signOutBtn = document.getElementById('sign-out');
+    const syncStatus = document.getElementById('sync-status');
+    
+    let isSignUp = false;
+    
+    // ============================================
+    // AUTH FUNCTIONS
+    // ============================================
+    async function signIn() {
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      
+      if (!email || !password) {
+        showAuthMessage('Please enter email and password', true);
+        return;
+      }
+      
+      authSubmit.textContent = 'SIGNING IN...';
+      authSubmit.disabled = true;
+      
+      const { data, error } = isSignUp 
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password });
+      
+      authSubmit.textContent = isSignUp ? 'SIGN UP' : 'SIGN IN';
+      authSubmit.disabled = false;
+      
+      if (error) {
+        showAuthMessage(error.message, true);
+      } else if (isSignUp && data.user && !data.session) {
+        showAuthMessage('Check your email to confirm your account');
+      }
+    }
+    
+    async function sendMagicLink() {
+      const email = authEmail.value.trim();
+      
+      if (!email) {
+        showAuthMessage('Please enter your email', true);
+        return;
+      }
+      
+      authMagic.textContent = 'SENDING...';
+      authMagic.disabled = true;
+      
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      
+      authMagic.textContent = 'SEND MAGIC LINK';
+      authMagic.disabled = false;
+      
+      if (error) {
+        showAuthMessage(error.message, true);
+      } else {
+        showAuthMessage('Check your email for the login link');
+      }
+    }
+    
+    async function signOut() {
+      await supabase.auth.signOut();
+      currentUser = null;
+      tasks = [];
+      showAuth();
+    }
+    
+    function showAuthMessage(msg, isError = false) {
+      authMessage.textContent = msg;
+      authMessage.className = 'auth-message' + (isError ? ' error' : '');
+    }
+    
+    function toggleAuthMode() {
+      isSignUp = !isSignUp;
+      authToggleText.textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+      authToggleLink.textContent = isSignUp ? 'SIGN IN' : 'SIGN UP';
+      authSubmit.textContent = isSignUp ? 'SIGN UP' : 'SIGN IN';
+      authMessage.textContent = '';
+    }
+    
+    function showAuth() {
+      authContainer.style.display = 'block';
+      appContainer.classList.remove('visible');
+    }
+    
+    function showApp() {
+      authContainer.style.display = 'none';
+      appContainer.classList.add('visible');
+    }
+    
+    // ============================================
+    // TASK FUNCTIONS
+    // ============================================
+    async function loadTasks() {
+      if (!currentUser) return;
+      
+      setSyncStatus('syncing');
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('position', { ascending: true });
+      
+      if (error) {
+        console.error('Error loading tasks:', error);
+        setSyncStatus('error');
+      } else {
+        tasks = data || [];
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+      }
+    }
+    
+    async function addTask() {
+      const title = taskInput.value.trim().toUpperCase();
+      if (!title || !currentUser) return;
+      
+      const isLogging = activeTab === 'done';
+      
+      // Get max position for ordering
+      const maxPos = tasks.length > 0 ? Math.max(...tasks.map(t => t.position || 0)) : 0;
+      
+      const task = {
+        user_id: currentUser.id,
+        title,
+        status: isLogging ? 'done' : 'today',
+        created_at: new Date().toISOString(),
+        completed_at: isLogging ? new Date().toISOString() : null,
+        was_unplanned: isLogging,
+        position: maxPos + 1,
+      };
+      
+      taskInput.value = '';
+      setSyncStatus('syncing');
+      
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(task)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding task:', error);
+        setSyncStatus('error');
+      } else {
+        tasks.unshift(data);
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+        if (isLogging) playThunk();
+      }
+    }
+    
+    async function completeTask(id) {
+      const taskRow = document.querySelector(`[data-task-id="${id}"]`);
+      if (taskRow) {
+        taskRow.classList.add('completing');
+        
+        setTimeout(() => playThunk(), 150);
+        
+        setTimeout(async () => {
+          setSyncStatus('syncing');
+          
+          const { error } = await supabase
+            .from('tasks')
+            .update({ 
+              status: 'done', 
+              completed_at: new Date().toISOString() 
+            })
+            .eq('id', id);
+          
+          if (error) {
+            console.error('Error completing task:', error);
+            setSyncStatus('error');
+          } else {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+              task.status = 'done';
+              task.completed_at = new Date().toISOString();
+            }
+            renderTasks();
+            updateStats();
+            setSyncStatus('synced');
+          }
+        }, 550);
+      }
+    }
+    
+    async function uncompleteTask(id) {
+      setSyncStatus('syncing');
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'today', completed_at: null })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error:', error);
+        setSyncStatus('error');
+      } else {
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+          task.status = 'today';
+          task.completed_at = null;
+        }
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+      }
+    }
+    
+    async function deferTask(id) {
+      setSyncStatus('syncing');
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'deferred' })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error:', error);
+        setSyncStatus('error');
+      } else {
+        const task = tasks.find(t => t.id === id);
+        if (task) task.status = 'deferred';
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+      }
+    }
+    
+    async function restoreTask(id) {
+      setSyncStatus('syncing');
+      
+      const { error } = await supabase
+        .from('tasks')
+        .update({ status: 'today' })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error:', error);
+        setSyncStatus('error');
+      } else {
+        const task = tasks.find(t => t.id === id);
+        if (task) task.status = 'today';
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+      }
+    }
+    
+    async function deleteTask(id) {
+      setSyncStatus('syncing');
+      
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('Error:', error);
+        setSyncStatus('error');
+      } else {
+        tasks = tasks.filter(t => t.id !== id);
+        renderTasks();
+        updateStats();
+        setSyncStatus('synced');
+      }
+    }
+    
+    async function reorderTasks(taskId, newIndex) {
+      const todayTasks = tasks.filter(t => t.status === 'today');
+      const taskIndex = todayTasks.findIndex(t => t.id === taskId);
+      
+      if (taskIndex === -1 || taskIndex === newIndex) return;
+      
+      const [movedTask] = todayTasks.splice(taskIndex, 1);
+      todayTasks.splice(newIndex, 0, movedTask);
+      
+      // Update positions
+      setSyncStatus('syncing');
+      
+      const updates = todayTasks.map((task, index) => ({
+        id: task.id,
+        position: index,
+      }));
+      
+      for (const update of updates) {
+        await supabase
+          .from('tasks')
+          .update({ position: update.position })
+          .eq('id', update.id);
+        
+        const task = tasks.find(t => t.id === update.id);
+        if (task) task.position = update.position;
+      }
+      
+      tasks.sort((a, b) => (a.position || 0) - (b.position || 0));
+      renderTasks();
+      setSyncStatus('synced');
+    }
+    
+    // ============================================
+    // UI FUNCTIONS
+    // ============================================
+    function setSyncStatus(status) {
+      syncStatus.textContent = status === 'syncing' ? 'SYNCING...' : status === 'error' ? 'SYNC ERROR' : 'SYNCED';
+      syncStatus.className = 'sync-status' + (status === 'syncing' ? ' syncing' : '');
+    }
+    
+    function formatDate() {
+      const d = new Date();
+      const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+      return `${month} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+    
+    function updateStats() {
+      const today = new Date().toDateString();
+      const todayCompleted = tasks.filter(t => 
+        t.status === 'done' && t.completed_at && new Date(t.completed_at).toDateString() === today
+      ).length;
+      
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const weekTasks = tasks.filter(t => 
+        t.status === 'done' && t.completed_at && new Date(t.completed_at) > weekAgo
+      );
+      const unplannedCount = weekTasks.filter(t => t.was_unplanned).length;
+      
+      document.getElementById('today-count').textContent = todayCompleted;
+      document.getElementById('week-count').textContent = weekTasks.length;
+      document.getElementById('unplanned-count').textContent = unplannedCount;
+      
+      const unplannedStat = document.getElementById('unplanned-stat');
+      unplannedStat.classList.toggle('hidden', unplannedCount === 0);
+      
+      const todayTasks = tasks.filter(t => t.status === 'today');
+      const doneTasks = tasks.filter(t => t.status === 'done');
+      const deferredTasks = tasks.filter(t => t.status === 'deferred');
+      
+      document.getElementById('today-tab-count').textContent = todayTasks.length || '';
+      document.getElementById('done-tab-count').textContent = doneTasks.length || '';
+      document.getElementById('deferred-tab-count').textContent = deferredTasks.length || '';
+    }
+    
+    function renderTasks() {
+      const filtered = tasks.filter(t => {
+        if (activeTab === 'today') return t.status === 'today';
+        if (activeTab === 'done') return t.status === 'done';
+        if (activeTab === 'deferred') return t.status === 'deferred';
+      });
+      
+      // Sort by position for today tasks
+      if (activeTab === 'today') {
+        filtered.sort((a, b) => (a.position || 0) - (b.position || 0));
+      } else if (activeTab === 'done') {
+        filtered.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+      }
+      
+      if (filtered.length === 0) {
+        const messages = {
+          today: { title: 'NO TASKS ON FILE', subtitle: 'ADD A NEW TASK OR LOG WHAT YOU\'VE DONE' },
+          done: { title: 'NOTHING FILED YET', subtitle: 'UNPLANNED WINS COUNT TOO' },
+          deferred: { title: 'NO DEFERRALS', subtitle: 'DEFERRING IS A DECISION, NOT A FAILURE' },
+        };
+        const msg = messages[activeTab];
+        taskList.innerHTML = `
+          <div class="empty-state">
+            <p class="empty-title">${msg.title}</p>
+            <p class="empty-subtitle">${msg.subtitle}</p>
+          </div>
+        `;
+        return;
+      }
+      
+      taskList.innerHTML = filtered.map((task, i) => {
+        if (activeTab === 'today') {
+          return `
+            <div class="task-row" data-task-id="${task.id}" draggable="true">
+              <span class="drag-handle">⠿</span>
+              <button class="checkbox" onclick="completeTask(${task.id})"></button>
+              <span class="task-title">${task.title}</span>
+              <span class="task-number">NO. ${String(i + 1).padStart(3, '0')}</span>
+              <div class="task-actions">
+                <button class="action-btn" onclick="deferTask(${task.id})">DEFER</button>
+                <button class="action-btn" onclick="deleteTask(${task.id})">×</button>
+              </div>
+            </div>
+          `;
+        } else if (activeTab === 'done') {
+          const time = task.completed_at 
+            ? new Date(task.completed_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toUpperCase()
+            : '';
+          return `
+            <div class="task-row done" data-task-id="${task.id}">
+              <button class="checkbox checked" onclick="uncompleteTask(${task.id})">✓</button>
+              <span class="task-title done">${task.title}</span>
+              ${task.was_unplanned ? '<span class="unplanned-tag">UNPLANNED</span>' : ''}
+              <span class="time-stamp">${time}</span>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="task-row deferred" data-task-id="${task.id}">
+              <div class="checkbox deferred"></div>
+              <span class="task-title deferred">${task.title}</span>
+              <div class="task-actions">
+                <button class="action-btn restore" onclick="restoreTask(${task.id})">RESTORE</button>
+                <button class="action-btn" onclick="deleteTask(${task.id})">×</button>
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+      
+      setupDragAndDrop();
+    }
+    
+    // ============================================
+    // DRAG AND DROP
+    // ============================================
+    let draggedTaskId = null;
+    
+    function setupDragAndDrop() {
+      const taskRows = document.querySelectorAll('.task-row[draggable="true"]');
+      
+      taskRows.forEach(row => {
+        row.addEventListener('dragstart', handleDragStart);
+        row.addEventListener('dragend', handleDragEnd);
+        row.addEventListener('dragover', handleDragOver);
+        row.addEventListener('dragleave', handleDragLeave);
+        row.addEventListener('drop', handleDrop);
+        
+        // Touch support
+        const handle = row.querySelector('.drag-handle');
+        if (handle) {
+          handle.addEventListener('touchstart', handleTouchStart, { passive: false });
+        }
+      });
+    }
+    
+    function handleDragStart(e) {
+      draggedTaskId = parseInt(this.dataset.taskId);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => this.style.opacity = '0.4', 0);
+    }
+    
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+      this.style.opacity = '1';
+      document.querySelectorAll('.task-row').forEach(row => row.classList.remove('drag-over'));
+      draggedTaskId = null;
+    }
+    
+    function handleDragOver(e) {
+      e.preventDefault();
+      const targetId = parseInt(this.dataset.taskId);
+      if (targetId !== draggedTaskId) {
+        document.querySelectorAll('.task-row').forEach(row => row.classList.remove('drag-over'));
+        this.classList.add('drag-over');
+      }
+    }
+    
+    function handleDragLeave() {
+      this.classList.remove('drag-over');
+    }
+    
+    function handleDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      
+      const targetId = parseInt(this.dataset.taskId);
+      if (targetId === draggedTaskId) return;
+      
+      const todayTasks = tasks.filter(t => t.status === 'today');
+      const targetIndex = todayTasks.findIndex(t => t.id === targetId);
+      
+      if (targetIndex !== -1) {
+        reorderTasks(draggedTaskId, targetIndex);
+      }
+    }
+    
+    // Basic touch support
+    let touchStartY = 0;
+    let touchedRow = null;
+    
+    function handleTouchStart(e) {
+      const row = e.target.closest('.task-row');
+      if (!row) return;
+      
+      touchedRow = row;
+      touchStartY = e.touches[0].clientY;
+      draggedTaskId = parseInt(row.dataset.taskId);
+      
+      row.classList.add('dragging');
+      
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+    }
+    
+    function handleTouchMove(e) {
+      e.preventDefault();
+      if (!touchedRow) return;
+      
+      const touch = e.touches[0];
+      const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+      const targetRow = elements.find(el => el.classList.contains('task-row') && el !== touchedRow);
+      
+      document.querySelectorAll('.task-row').forEach(row => row.classList.remove('drag-over'));
+      if (targetRow) {
+        targetRow.classList.add('drag-over');
+      }
+    }
+    
+    function handleTouchEnd(e) {
+      if (!touchedRow) return;
+      
+      touchedRow.classList.remove('dragging');
+      
+      const dragOverRow = document.querySelector('.task-row.drag-over');
+      if (dragOverRow) {
+        const targetId = parseInt(dragOverRow.dataset.taskId);
+        const todayTasks = tasks.filter(t => t.status === 'today');
+        const targetIndex = todayTasks.findIndex(t => t.id === targetId);
+        
+        if (targetIndex !== -1) {
+          reorderTasks(draggedTaskId, targetIndex);
+        }
+      }
+      
+      document.querySelectorAll('.task-row').forEach(row => row.classList.remove('drag-over'));
+      
+      touchedRow = null;
+      draggedTaskId = null;
+      
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    }
+    
+    // ============================================
+    // AUDIO
+    // ============================================
+    let audioCtx = null;
+    
+    function playThunk() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const now = audioCtx.currentTime;
+        
+        // Coin drop sound
+        const clink = audioCtx.createOscillator();
+        const clinkGain = audioCtx.createGain();
+        clink.connect(clinkGain);
+        clinkGain.connect(audioCtx.destination);
+        clink.frequency.setValueAtTime(2800, now);
+        clink.frequency.exponentialRampToValueAtTime(1800, now + 0.08);
+        clinkGain.gain.setValueAtTime(0.12, now);
+        clinkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        clink.type = 'sine';
+        clink.start(now);
+        clink.stop(now + 0.15);
+        
+        const shimmer = audioCtx.createOscillator();
+        const shimmerGain = audioCtx.createGain();
+        shimmer.connect(shimmerGain);
+        shimmerGain.connect(audioCtx.destination);
+        shimmer.frequency.setValueAtTime(4200, now);
+        shimmer.frequency.exponentialRampToValueAtTime(2400, now + 0.06);
+        shimmerGain.gain.setValueAtTime(0.06, now);
+        shimmerGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        shimmer.type = 'sine';
+        shimmer.start(now);
+        shimmer.stop(now + 0.1);
+        
+        const chunk = audioCtx.createOscillator();
+        const chunkGain = audioCtx.createGain();
+        chunk.connect(chunkGain);
+        chunkGain.connect(audioCtx.destination);
+        chunk.frequency.setValueAtTime(250, now + 0.06);
+        chunk.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+        chunkGain.gain.setValueAtTime(0, now);
+        chunkGain.gain.setValueAtTime(0.15, now + 0.06);
+        chunkGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        chunk.type = 'sine';
+        chunk.start(now);
+        chunk.stop(now + 0.2);
+        
+        const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.08, audioCtx.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseBuffer.length; i++) {
+          const rattle = Math.sin(i / (audioCtx.sampleRate * 0.003)) * 0.5 + 0.5;
+          noiseData[i] = (Math.random() * 2 - 1) * rattle * Math.exp(-i / (audioCtx.sampleRate * 0.04));
+        }
+        const noise = audioCtx.createBufferSource();
+        const noiseGain = audioCtx.createGain();
+        const noiseFilter = audioCtx.createBiquadFilter();
+        noise.buffer = noiseBuffer;
+        noise.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(audioCtx.destination);
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(4000, now);
+        noiseFilter.Q.setValueAtTime(3, now);
+        noiseGain.gain.setValueAtTime(0.04, now);
+        noise.start(now + 0.02);
+      } catch (e) {}
+    }
+    
+    // ============================================
+    // EVENT LISTENERS
+    // ============================================
+    authSubmit.addEventListener('click', signIn);
+    authMagic.addEventListener('click', sendMagicLink);
+    authToggleLink.addEventListener('click', toggleAuthMode);
+    signOutBtn.addEventListener('click', signOut);
+    
+    authEmail.addEventListener('keypress', (e) => { if (e.key === 'Enter') authPassword.focus(); });
+    authPassword.addEventListener('keypress', (e) => { if (e.key === 'Enter') signIn(); });
+    
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeTab = btn.dataset.tab;
+        
+        taskInput.placeholder = activeTab === 'done' ? 'LOG COMPLETED TASK' : 'ADD NEW TASK';
+        submitBtn.textContent = activeTab === 'done' ? 'LOG' : 'FILE';
+        
+        renderTasks();
+      });
+    });
+    
+    submitBtn.addEventListener('click', addTask);
+    taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+    
+    // ============================================
+    // INIT
+    // ============================================
+    document.getElementById('current-date').textContent = formatDate();
+    
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        currentUser = session.user;
+        showApp();
+        loadTasks();
+      } else {
+        showAuth();
+      }
+    });
+    
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        currentUser = session.user;
+        showApp();
+        loadTasks();
+      } else {
+        currentUser = null;
+        showAuth();
+      }
+    });
+  </script>
+</body>
+</html>
